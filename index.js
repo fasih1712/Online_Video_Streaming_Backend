@@ -15,7 +15,8 @@ const {
   getComments,
   putLikeDislike,
   putViews,
-  removefromplaylist
+  removefromplaylist,
+  putCommentLikes
 
 } = require("./controllers/controller");
 const multer = require("multer");
@@ -74,6 +75,8 @@ app.put("/updateviews", putViews)
 
 
 app.delete("/removefromplaylist", removefromplaylist);
+
+app.put("/commentlikes", putCommentLikes);
 
 
 app.listen(5000, () => console.log("Server Running ..."));

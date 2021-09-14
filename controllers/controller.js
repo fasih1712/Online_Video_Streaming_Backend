@@ -74,12 +74,7 @@ module.exports.postLogin = (req, res) => {
 module.exports.postVideo = (req, res) => {
   const { title, quality, description, userid: user_id } = req.body;
   let category = req.body.category;
-  console.log(category);
   const upload_date = Date().split(" ").slice(1, 4).join(" ");
-  //console.log(req.body);
-  //console.log(req.files)
-  console.log(req.files)
-
   let audio_video;
   let thumbnail;
   let subtitles;
@@ -102,7 +97,6 @@ module.exports.postVideo = (req, res) => {
       console.log(err.message);
       res.redirect("http://localhost:3000/");
     } else {
-      //console.log(result)
       if (typeof category == "object") {
         category.forEach((val, index) => {
           var sql = `INSERT INTO video_category(title, category) VALUES('${title}', '${val}')`;
@@ -407,3 +401,22 @@ module.exports.removefromplaylist = (req, res) => {
     }
   });
 };
+
+module.exports.putCommentLikes = (req, res) =>{
+  let id = Number(req.query.id);
+  let count = Number(req.query.count);
+  var sql;
+    sql = `UPDATE comments SET likes = ${count + 1} WHERE comment_id = ${id}`
+ 
+
+  db.query(sql, (err, result)=>{
+    if (err) console.log(err.message);
+    else{
+      console.log(result);
+      res.json({}).status(200);
+    }
+  })
+
+  console.log(sql);
+  
+}
