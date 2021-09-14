@@ -78,9 +78,24 @@ module.exports.postVideo = (req, res) => {
   const upload_date = Date().split(" ").slice(1, 4).join(" ");
   //console.log(req.body);
   //console.log(req.files)
+  console.log(req.files)
+
+  let audio_video;
+  let thumbnail;
+  let subtitles;
+  if (req.files[0].mimetype == "application/octet-stream"){
+    subtitles = req.files[0];
+    audio_video = req.files[1];
+    thumbnail = req.files[2];
+  }else{
+    subtitles = ""
+    audio_video = req.files[0];
+    thumbnail = req.files[1];
+  }
+
 
   var sql = `INSERT INTO video(title, view_count, thumbnail_path, likes, upload_date, quality, captions, dislikes, user_id, description, video_path)
-            VALUES ('${title}', 0, '/public/thumbnails/${req.files[1].originalname}', 0, '${upload_date}', '${quality}', ' ', 0, ${user_id}, '${description}', '/public/${req.files[0].originalname.split(".")[1] == "mp3" ? "audios" : "videos"}/${req.files[0].originalname}')`;
+            VALUES ('${title}', 0, '/public/thumbnails/${thumbnail.originalname}', 0, '${upload_date}', '${quality}', '${subtitles ? `/public/subtitles/${subtitles.originalname}` : ''}', 0, ${user_id}, '${description}', '/public/${audio_video.originalname.split(".")[1] == "mp3" ? "audios" : "videos"}/${audio_video.originalname}')`;
 
   db.query(sql, function (err, result) {
     if (err) {

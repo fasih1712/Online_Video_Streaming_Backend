@@ -40,10 +40,11 @@ app.put("/updatelikedislike", putLikeDislike);
 var storage = multer.diskStorage({
   destination: function (req, file, cb) {
     let ext = file.mimetype.split("/")[1];
+    console.log(ext);
     let dir =
       ext == "png" || ext == "jpg" || ext == "jpeg"
         ? "./public/thumbnails"
-        : ext == "mp4" ? "./public/videos" : "./public/audios";
+        : ext == "mp4" ? "./public/videos" : ext == "octet-stream" ? "./public/subtitles" : "./public/audios";
     cb(null, dir);
   },
   filename: function (req, file, cb) {
