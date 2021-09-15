@@ -130,7 +130,7 @@ module.exports.postUserVideos = (req, res) => {
     if (err) {
       res.status(404).json({ status: "No Videos Found!" });
     } else {
-      //console.log(result)
+      console.log(result)
       var sql = `SELECT * FROM playlist WHERE user_id = ${user_id}`;
       db.query(sql, (err, result2) => {
         if (err) console.log(err);
@@ -150,6 +150,14 @@ module.exports.postUserVideos = (req, res) => {
           }, 1000);
         }
       });
+      // var sql = `SELECT * FROM playlist p, playlist_videos c, video v WHERE p.name = c.name AND p.user_id = ${user_id} AND v.title = c.title`;
+      // db.query(sql, (err, result2)=>{
+      //   if (err) console.log(err);
+      //   else{
+      //     console.log(result2);
+      //     res.json({result, playlist: result2}).status(200);
+      //   }
+      // })
     }
   });
 };
@@ -336,7 +344,7 @@ module.exports.postComment = (req, res) => {
 
 module.exports.getComments = (req, res) => {
   const { title } = req.query;
-  var sql = `SELECT * FROM comments WHERE title = '${title}'`;
+  var sql = `SELECT * FROM comments c, user u WHERE title = '${title}' AND c.user_id = u.user_id`;
   db.query(sql, (err, result) => {
     if (err) {
       console.log(err);
