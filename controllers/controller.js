@@ -33,7 +33,7 @@ module.exports.postSignup = async (req, res) => {
   }
   let salt = await bcrypt.genSalt();
   password = await bcrypt.hash(password, salt);
-  var sql = "INSERT INTO user (user_name, user_email, password) VALUES (?,?,?)";
+  var sql = "INSERT INTO users (user_name, user_email, password) VALUES (?,?,?)";
   db.query(sql, [fullname, email, password], function (err, result) {
     if (err) {
       res.redirect("http://localhost:3000/");
@@ -50,7 +50,7 @@ module.exports.postSignup = async (req, res) => {
 module.exports.postLogin = (req, res) => {
   let email = req.body.email;
   let password = req.body.password;
-  var sql = `SELECT * FROM user WHERE user_email = '${email}'`;
+  var sql = `SELECT * FROM users WHERE user_email = '${email}'`;
   db.query(sql, async function (err, result) {
     if (err) {
       //console.log(err.message)
@@ -89,7 +89,7 @@ module.exports.postVideo = (req, res) => {
   }
 
 
-  var sql = `INSERT INTO video(title, view_count, thumbnail_path, likes, upload_date, quality, captions, dislikes, user_id, description, video_path)
+  var sql = `INSERT INTO videos(title, view_count, thumbnail_path, likes, upload_date, quality, captions, dislikes, user_id, description, video_path)
             VALUES ('${title}', 0, '/public/thumbnails/${thumbnail.originalname}', 0, '${upload_date}', '${quality}', '${subtitles ? `/public/subtitles/${subtitles.originalname}` : ''}', 0, ${user_id}, '${description}', '/public/${audio_video.originalname.split(".")[1] == "mp3" ? "audios" : "videos"}/${audio_video.originalname}')`;
 
   db.query(sql, function (err, result) {
@@ -99,7 +99,7 @@ module.exports.postVideo = (req, res) => {
     } else {
       if (typeof category == "object") {
         category.forEach((val, index) => {
-          var sql = `INSERT INTO video_category(title, category) VALUES('${title}', '${val}')`;
+          var sql = `INSERT INTO videocategories(title, category) VALUES('${title}', '${val}')`;
           db.query(sql, function (err, result) {
             if (err) {
               console.log(err.message);
@@ -109,11 +109,19 @@ module.exports.postVideo = (req, res) => {
           });
         });
       } else {
-        var sql = `INSERT INTO video_category(title, category) VALUES('${title}', '${category}')`;
+        var sql = `INSERT INTO videocategories(title, category) VALUES('${title}', '${category}')`;
         db.query(sql, function (err, result) {
           if (err) {
             console.log(err.message);
           } else {
+            let getNoOfVideosSQL = `SELECT no_of_videos FROM categories WHERE category = '${category}'`;
+            db.query(getNoOfVideosSQL, (err, result)=>{
+              let incrementViewsSQL = `UPDATE categories SET no_of_videos = ${++result[0]["no_of_videos"]} WHERE category = '${category}'`;
+              db.query(incrementViewsSQL, (err, result)=>{
+                if (err) console.log(err.message);
+                console.log(result);
+              })
+            })
             console.log(result);
           }
         });
@@ -125,18 +133,18 @@ module.exports.postVideo = (req, res) => {
 
 module.exports.postUserVideos = (req, res) => {
   const user_id = req.body.userid;
-  var sql = `SELECT * FROM video WHERE user_id = ${user_id}`;
+  var sql = `SELECT * FROM videos WHERE user_id = ${user_id}`;
   db.query(sql, (err, result) => {
     if (err) {
       res.status(404).json({ status: "No Videos Found!" });
     } else {
       console.log(result)
-      var sql = `SELECT * FROM playlist WHERE user_id = ${user_id}`;
+      var sql = `SELECT * FROM playlists WHERE user_id = ${user_id}`;
       db.query(sql, (err, result2) => {
         if (err) console.log(err);
         else {
           result2.forEach((val, index) => {
-            var sql = `SELECT * FROM playlist_videos WHERE name = '${val.name}'`;
+            var sql = `SELECT * FROM playlistvideos WHERE name = '${val.name}'`;
             db.query(sql, (err, result3) => {
               if (err) console.log(err);
               else {
@@ -163,13 +171,13 @@ module.exports.postUserVideos = (req, res) => {
 };
 
 module.exports.getAllVideos = (req, res) => {
-  var sql = `SELECT * FROM video`;
+  var sql = `SELECT * FROM videos`;
   db.query(sql, (err, result) => {
     if (err) {
       res.status(404).json({ status: "No Videos Found!" });
     } else {
       //console.log(result)
-      var sql = `SELECT * FROM video_category`;
+      var sql = `SELECT * FROM videocategories`;
       db.query(sql, (err, result2) => {
         if (err) {
           console.log(err);
@@ -196,12 +204,12 @@ module.exports.getAllVideos = (req, res) => {
 
 module.exports.showVideo = (req, res) => {
   const title = req.query.title;
-  var sql = `SELECT * FROM video WHERE title = '${title}'`;
+  var sql = `SELECT * FROM videos WHERE title = '${title}'`;
   db.query(sql, (err, result) => {
     if (err) {
       res.status(404).json({ status: "No Videos Found!" });
     } else {
-      var sql = `SELECT * FROM video_category`;
+      var sql = `SELECT * FROM videocategories`;
       db.query(sql, (err, result2) => {
         if (err) {
           console.log(err);
@@ -232,7 +240,7 @@ module.exports.filterVideos = (req, res) => {
 
   var sql;
 
-  sql = `SELECT * FROM video`;
+  sql = `SELECT * FROM videos`;
   db.query(sql, (err, result) => {
     if (err) {
       res.status(404).json({ status: "No Videos Found!" });
@@ -246,7 +254,7 @@ module.exports.filterVideos = (req, res) => {
         res.status(200).json({ result });
       } else {
         console.log("Else");
-        var categorySQL = `SELECT * FROM video_category`;
+        var categorySQL = `SELECT * FROM videocategories`;
         db.query(categorySQL, (err, result2) => {
           categoryResult = result2.filter((val, index) => {
             //console.log(val);
@@ -272,7 +280,7 @@ module.exports.filterVideos = (req, res) => {
 
 module.exports.getUser = (req, res) => {
   let userid = req.query.userid;
-  var sql = `SELECT * FROM user where user_id = ${userid}`;
+  var sql = `SELECT * FROM users where user_id = ${userid}`;
   db.query(sql, (err, user) => {
     if (err) {
       res.status(404).json({ status: "No User Found!" });
@@ -286,10 +294,10 @@ module.exports.getUser = (req, res) => {
 module.exports.postPlaylist = (req, res) => {
   console.log(req.body);
   console.log(req.query);
-  var sqlForPlaylistVideos = `INSERT INTO playlist_videos(name, title) VALUES('${req.body.playlistname}', '${req.query.title}')`;
+  var sqlForPlaylistVideos = `INSERT INTO playlistvideos(name, title) VALUES('${req.body.playlistname}', '${req.query.title}')`;
   var count = 0;
 
-  var sqlForLength = `SELECT COUNT(name) FROM playlist_videos WHERE name = '${req.body.playlistname}'`;
+  var sqlForLength = `SELECT COUNT(name) FROM playlistvideos WHERE name = '${req.body.playlistname}'`;
   db.query(sqlForLength, (err, data) => {
     if (err) {
       console.log(err);
@@ -298,7 +306,7 @@ module.exports.postPlaylist = (req, res) => {
       let result = JSON.parse(JSON.stringify(data))[0];
       count = result["COUNT(name)"];
       if (count == 0) {
-        var sql = `INSERT INTO playlist(name, no_of_videos, total_views, user_id) VALUES('${req.body.playlistname}', 1, 0, ${req.query.userid})`;
+        var sql = `INSERT INTO playlists(name, no_of_videos, total_views, user_id) VALUES('${req.body.playlistname}', 1, 0, ${req.query.userid})`;
         db.query(sql, (err, user) => {
           if (err) {
             res.json(err);
@@ -314,7 +322,7 @@ module.exports.postPlaylist = (req, res) => {
           console.log(err);
           res.redirect("http://localhost:3000/");
         } else {
-          var sql = `UPDATE playlist SET no_of_videos = ${
+          var sql = `UPDATE playlists SET no_of_videos = ${
             count + 1
           } WHERE name = '${req.body.playlistname}'`;
           db.query(sql, (err, result) => {
@@ -344,7 +352,7 @@ module.exports.postComment = (req, res) => {
 
 module.exports.getComments = (req, res) => {
   const { title } = req.query;
-  var sql = `SELECT * FROM comments c, user u WHERE title = '${title}' AND c.user_id = u.user_id`;
+  var sql = `SELECT * FROM comments c, users u WHERE title = '${title}' AND c.user_id = u.user_id`;
   db.query(sql, (err, result) => {
     if (err) {
       console.log(err);
@@ -357,7 +365,7 @@ module.exports.getComments = (req, res) => {
 module.exports.putLikeDislike = (req, res) => {
   console.log(req.body);
   const { likes, dislikes, title } = req.body;
-  var sql = `UPDATE video SET likes = ${likes}, dislikes = ${dislikes} WHERE title = '${title}'`;
+  var sql = `UPDATE videos SET likes = ${likes}, dislikes = ${dislikes} WHERE title = '${title}'`;
   db.query(sql, (err, result) => {
     if (err) console.log(err);
     else {
@@ -367,14 +375,31 @@ module.exports.putLikeDislike = (req, res) => {
 };
 
 module.exports.putViews = (req, res) => {
-  const { views, title } = req.body;
-  var sql = `UPDATE video SET view_count = ${views} WHERE title = '${title}'`;
-  db.query(sql, (err, result) => {
-    if (err) console.log(err);
-    else {
-      res.json({ views }).status(200);
+  const { views, title, category } = req.body;
+  if (category){
+    var sql = `UPDATE videos SET view_count = ${views} WHERE title = '${title}'`;
+    db.query(sql, (err, result) => {
+      if (err) console.log(err);
+      else {
+        if (category){
+          console.log(category);
+          let getNoOfViewsSQL = `SELECT no_of_views FROM categories WHERE category = '${category}'`;
+    
+                db.query(getNoOfViewsSQL, (err, result)=>{
+                  let incrementViewsSQL = `UPDATE categories SET no_of_views = ${++result[0]["no_of_views"]} WHERE category = '${category}'`;
+                  db.query(incrementViewsSQL, (err, result)=>{
+                    if (err) console.log(err.message);
+                    console.log(result);
+                  })
+                  res.json({ views }).status(200);
+    
+                })
+        }
+      }
     }
-  });
+    
+  
+  )};
 };
 
 module.exports.removefromplaylist = (req, res) => {
@@ -382,13 +407,13 @@ module.exports.removefromplaylist = (req, res) => {
   let name = req.query.name;
   let num = Number(req.query.num);
   console.log(req.query);
-  var deleteSQL = `DELETE FROM playlist_videos WHERE name = '${name}' AND title = '${title}'`;
+  var deleteSQL = `DELETE FROM playlistvideos WHERE name = '${name}' AND title = '${title}'`;
   db.query(deleteSQL, (err, result) => {
     if (err) console.log(err);
     else {
       console.log(result);
       if (num != 1) {
-        let updateSQL = `UPDATE playlist SET no_of_videos = ${
+        let updateSQL = `UPDATE playlists SET no_of_videos = ${
           num - 1
         } WHERE name = '${name}'`;
         db.query(updateSQL, (err, result) => {
@@ -398,7 +423,7 @@ module.exports.removefromplaylist = (req, res) => {
           }
         });
       }else{
-        let deleteSQL = `DELETE FROM playlist WHERE name = '${name}'`;
+        let deleteSQL = `DELETE FROM playlists WHERE name = '${name}'`;
         db.query(deleteSQL, (err, result) => {
           if (err) console.log(err);
           else {
