@@ -66,7 +66,7 @@ module.exports.postLogin = (req, res) => {
         );
         res.status(200);
       } else {
-        res.redirect("http://localhost:3000/");
+        res.redirect("http://localhost:3000?message=incorrectemailpwd");
       }
     }
   });
