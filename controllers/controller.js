@@ -33,7 +33,8 @@ module.exports.postSignup = async (req, res) => {
   }
   let salt = await bcrypt.genSalt();
   password = await bcrypt.hash(password, salt);
-  var sql = "INSERT INTO users (user_name, user_email, password) VALUES (?,?,?)";
+  var sql =
+    "INSERT INTO users (user_name, user_email, password) VALUES (?,?,?)";
   db.query(sql, [fullname, email, password], function (err, result) {
     if (err) {
       res.redirect("http://localhost:3000/");
@@ -78,19 +79,24 @@ module.exports.postVideo = (req, res) => {
   let audio_video;
   let thumbnail;
   let subtitles;
-  if (req.files[0].mimetype == "application/octet-stream"){
+  if (req.files[0].mimetype == "application/octet-stream") {
     subtitles = req.files[0];
     audio_video = req.files[1];
     thumbnail = req.files[2];
-  }else{
-    subtitles = ""
+  } else {
+    subtitles = "";
     audio_video = req.files[0];
     thumbnail = req.files[1];
   }
 
-
   var sql = `INSERT INTO videos(title, view_count, thumbnail_path, likes, upload_date, quality, captions, dislikes, user_id, description, video_path)
-            VALUES ('${title}', 0, '/public/thumbnails/${thumbnail.originalname}', 0, '${upload_date}', '${quality}', '${subtitles ? `/public/subtitles/${subtitles.originalname}` : ''}', 0, ${user_id}, '${description}', '/public/${audio_video.originalname.split(".")[1] == "mp3" ? "audios" : "videos"}/${audio_video.originalname}')`;
+            VALUES ('${title}', 0, '/public/thumbnails/${
+    thumbnail.originalname
+  }', 0, '${upload_date}', '${quality}', '${
+    subtitles ? `/public/subtitles/${subtitles.originalname}` : ""
+  }', 0, ${user_id}, '${description}', '/public/${
+    audio_video.originalname.split(".")[1] == "mp3" ? "audios" : "videos"
+  }/${audio_video.originalname}')`;
 
   db.query(sql, function (err, result) {
     if (err) {
@@ -115,13 +121,15 @@ module.exports.postVideo = (req, res) => {
             console.log(err.message);
           } else {
             let getNoOfVideosSQL = `SELECT no_of_videos FROM categories WHERE category = '${category}'`;
-            db.query(getNoOfVideosSQL, (err, result)=>{
-              let incrementViewsSQL = `UPDATE categories SET no_of_videos = ${++result[0]["no_of_videos"]} WHERE category = '${category}'`;
-              db.query(incrementViewsSQL, (err, result)=>{
+            db.query(getNoOfVideosSQL, (err, result) => {
+              let incrementViewsSQL = `UPDATE categories SET no_of_videos = ${++result[0][
+                "no_of_videos"
+              ]} WHERE category = '${category}'`;
+              db.query(incrementViewsSQL, (err, result) => {
                 if (err) console.log(err.message);
                 console.log(result);
-              })
-            })
+              });
+            });
             console.log(result);
           }
         });
@@ -133,41 +141,56 @@ module.exports.postVideo = (req, res) => {
 
 module.exports.postUserVideos = (req, res) => {
   const user_id = req.body.userid;
-  var sql = `SELECT * FROM videos WHERE user_id = ${user_id}`;
-  db.query(sql, (err, result) => {
-    if (err) {
-      res.status(404).json({ status: "No Videos Found!" });
-    } else {
-      console.log(result)
-      var sql = `SELECT * FROM playlists WHERE user_id = ${user_id}`;
-      db.query(sql, (err, result2) => {
-        if (err) console.log(err);
-        else {
-          result2.forEach((val, index) => {
-            var sql = `SELECT * FROM playlistvideos WHERE name = '${val.name}'`;
-            db.query(sql, (err, result3) => {
-              if (err) console.log(err);
-              else {
-                val.videos = result3;
-              }
-            });
-          });
-          setTimeout(() => {
-            console.log(result2);
-            res.status(200).json({ result, playlist: result2 });
-          }, 1000);
-        }
-      });
-      // var sql = `SELECT * FROM playlist p, playlist_videos c, video v WHERE p.name = c.name AND p.user_id = ${user_id} AND v.title = c.title`;
-      // db.query(sql, (err, result2)=>{
-      //   if (err) console.log(err);
-      //   else{
-      //     console.log(result2);
-      //     res.json({result, playlist: result2}).status(200);
-      //   }
-      // })
-    }
+  var result = {};
+  let sqlForVideo = `SELECT * FROM videos v, videocategories c WHERE v.user_id = ${user_id} AND v.title = c.title`;
+  db.query(sqlForVideo, (err, videoResult) => {
+    if (err) console.log(err.message);
+    result.video = videoResult;
+    let sqlForPlaylist = `SELECT * FROM playlists p, playlistvideos v WHERE p.user_id = ${user_id} AND p.name = v.name`;
+    db.query(sqlForPlaylist, (err, playlistResult) => {
+      if (err) console.log(err.message);
+      result.playlist = playlistResult;
+      console.log(result);
+      res.json(result).status(200);
+    });
   });
+
+
+  // var sql = `SELECT * FROM videos WHERE user_id = ${user_id}`;
+  // db.query(sql, (err, result) => {
+  //   if (err) {
+  //     res.status(404).json({ status: "No Videos Found!" });
+  //   } else {
+  //     console.log(result)
+  //     var sql = `SELECT * FROM playlists WHERE user_id = ${user_id}`;
+  //     db.query(sql, (err, result2) => {
+  //       if (err) console.log(err);
+  //       else {
+  //         result2.forEach((val, index) => {
+  //           var sql = `SELECT * FROM playlistvideos WHERE name = '${val.name}'`;
+  //           db.query(sql, (err, result3) => {
+  //             if (err) console.log(err);
+  //             else {
+  //               val.videos = result3;
+  //             }
+  //           });
+  //         });
+  //         setTimeout(() => {
+  //           console.log(result2);
+  //           res.status(200).json({ video: result, playlist: result2 });
+  //         }, 1000);
+  //       }
+  //     });
+  //     // var sql = `SELECT * FROM playlist p, playlist_videos c, video v WHERE p.name = c.name AND p.user_id = ${user_id} AND v.title = c.title`;
+  //     // db.query(sql, (err, result2)=>{
+  //     //   if (err) console.log(err);
+  //     //   else{
+  //     //     console.log(result2);
+  //     //     res.json({result, playlist: result2}).status(200);
+  //     //   }
+  //     // })
+  //   }
+  // });
 };
 
 module.exports.getAllVideos = (req, res) => {
@@ -376,30 +399,29 @@ module.exports.putLikeDislike = (req, res) => {
 
 module.exports.putViews = (req, res) => {
   const { views, title, category } = req.body;
-  if (category){
+  if (category) {
     var sql = `UPDATE videos SET view_count = ${views} WHERE title = '${title}'`;
     db.query(sql, (err, result) => {
       if (err) console.log(err);
       else {
-        if (category){
+        if (category) {
           console.log(category);
           let getNoOfViewsSQL = `SELECT no_of_views FROM categories WHERE category = '${category}'`;
-    
-                db.query(getNoOfViewsSQL, (err, result)=>{
-                  let incrementViewsSQL = `UPDATE categories SET no_of_views = ${++result[0]["no_of_views"]} WHERE category = '${category}'`;
-                  db.query(incrementViewsSQL, (err, result)=>{
-                    if (err) console.log(err.message);
-                    console.log(result);
-                  })
-                  res.json({ views }).status(200);
-    
-                })
+
+          db.query(getNoOfViewsSQL, (err, result) => {
+            let incrementViewsSQL = `UPDATE categories SET no_of_views = ${++result[0][
+              "no_of_views"
+            ]} WHERE category = '${category}'`;
+            db.query(incrementViewsSQL, (err, result) => {
+              if (err) console.log(err.message);
+              console.log(result);
+            });
+            res.json({ views }).status(200);
+          });
         }
       }
-    }
-    
-  
-  )};
+    });
+  }
 };
 
 module.exports.removefromplaylist = (req, res) => {
@@ -422,7 +444,7 @@ module.exports.removefromplaylist = (req, res) => {
             res.json({ result }).status(200);
           }
         });
-      }else{
+      } else {
         let deleteSQL = `DELETE FROM playlists WHERE name = '${name}'`;
         db.query(deleteSQL, (err, result) => {
           if (err) console.log(err);
@@ -435,21 +457,19 @@ module.exports.removefromplaylist = (req, res) => {
   });
 };
 
-module.exports.putCommentLikes = (req, res) =>{
+module.exports.putCommentLikes = (req, res) => {
   let id = Number(req.query.id);
   let count = Number(req.query.count);
   var sql;
-    sql = `UPDATE comments SET likes = ${count + 1} WHERE comment_id = ${id}`
- 
+  sql = `UPDATE comments SET likes = ${count + 1} WHERE comment_id = ${id}`;
 
-  db.query(sql, (err, result)=>{
+  db.query(sql, (err, result) => {
     if (err) console.log(err.message);
-    else{
+    else {
       console.log(result);
       res.json({}).status(200);
     }
-  })
+  });
 
   console.log(sql);
-  
-}
+};
