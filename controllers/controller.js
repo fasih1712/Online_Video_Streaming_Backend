@@ -155,7 +155,6 @@ module.exports.postUserVideos = (req, res) => {
     });
   });
 
-
   // var sql = `SELECT * FROM videos WHERE user_id = ${user_id}`;
   // db.query(sql, (err, result) => {
   //   if (err) {
@@ -194,35 +193,44 @@ module.exports.postUserVideos = (req, res) => {
 };
 
 module.exports.getAllVideos = (req, res) => {
-  var sql = `SELECT * FROM videos`;
-  db.query(sql, (err, result) => {
+  let sqlForAllVideos = `SELECT * FROM videos v, videocategories c WHERE v.title = c.title`;
+  db.query(sqlForAllVideos, (err, result) => {
     if (err) {
       res.status(404).json({ status: "No Videos Found!" });
     } else {
-      //console.log(result)
-      var sql = `SELECT * FROM videocategories`;
-      db.query(sql, (err, result2) => {
-        if (err) {
-          console.log(err);
-        } else {
-          result = result.map((val, index) => {
-            result2.forEach((val2, index2) => {
-              if (val.title == val2.title) {
-                if (typeof val.category != "object") {
-                  val.category = [];
-                  val.category.push(val2.category);
-                } else {
-                  val.category.push(val2.category);
-                }
-              }
-            });
-            return val;
-          });
-          res.status(200).json({ result });
-        }
-      });
+      res.status(200).json(result);
     }
   });
+
+  // var sql = `SELECT * FROM videos`;
+  // db.query(sql, (err, result) => {
+  //   if (err) {
+  //     res.status(404).json({ status: "No Videos Found!" });
+  //   } else {
+  //     //console.log(result)
+  //     var sql = `SELECT * FROM videocategories`;
+  //     db.query(sql, (err, result2) => {
+  //       if (err) {
+  //         console.log(err);
+  //       } else {
+  //         result = result.map((val, index) => {
+  //           result2.forEach((val2, index2) => {
+  //             if (val.title == val2.title) {
+  //               if (typeof val.category != "object") {
+  //                 val.category = [];
+  //                 val.category.push(val2.category);
+  //               } else {
+  //                 val.category.push(val2.category);
+  //               }
+  //             }
+  //           });
+  //           return val;
+  //         });
+  //         res.status(200).json({ result });
+  //       }
+  //     });
+  //   }
+  // });
 };
 
 module.exports.showVideo = (req, res) => {
@@ -405,7 +413,6 @@ module.exports.putViews = (req, res) => {
       if (err) console.log(err);
       else {
         if (category) {
-          console.log(category);
           let getNoOfViewsSQL = `SELECT no_of_views FROM categories WHERE category = '${category}'`;
 
           db.query(getNoOfViewsSQL, (err, result) => {
